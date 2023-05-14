@@ -2,3 +2,6 @@ Test*/
 
 #venv
 .venv/
+
+# logs
+*.log

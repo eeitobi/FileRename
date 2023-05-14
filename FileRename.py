@@ -4,6 +4,19 @@ import os
 pattern_file = '^(.*)\.(.*?)$'
 replace_chars = [' ', '.', '-']
 
+def rename_safely(old_file_path: os.path, new_file_path: os.path) -> None:
+    # check if target file name already exists
+    if not os.path.exists(new_file_path):
+        os.rename(src=old_file_path, dst=new_file_path)
+    else:
+        # if target file name exists, append "_2"
+        path, ext = os.path.splitext(new_file_path)
+        path = path + '_2'
+        new_file_path = path + ext
+        # try renaming again
+        rename_safely(old_file_path, new_file_path)
+
+
 def rename_file_in_dir(absolute_path: os.path, replace_chars: list) -> None:
     # get regex match
     file_path = os.path.split(absolute_path)[0]
@@ -23,7 +36,10 @@ def rename_file_in_dir(absolute_path: os.path, replace_chars: list) -> None:
         path_old = os.path.join(file_path, file_name)
         path_new = os.path.join(file_path, renamed_file)
 
-        os.rename(src=path_old, dst=path_new)
+        # check if renaming is necessary
+        if not path_old == path_new:
+            # rename with check of target path
+            rename_safely(old_file_path=path_old, new_file_path=path_new)
 
 def rename_folder(absolute_path: os.path) -> None:
     folder_path = os.path.split(absolute_path)[0]
@@ -32,10 +48,13 @@ def rename_folder(absolute_path: os.path) -> None:
     for char in replace_chars:
         renamed_folder_name = renamed_folder_name.replace(char, '_')
 
+    # rename safely
     path_old = os.path.join(folder_path, folder_name)
     path_new = os.path.join(folder_path, renamed_folder_name)
 
-    os.rename(src=path_old, dst=path_new)
+    # check if renaming is necessary
+    if not path_old == path_new:
+        rename_safely(old_file_path=path_old, new_file_path=path_new)
 
 def recurse_directory(path: os.path, replace_chars: list) -> None:
     # list all items in current path

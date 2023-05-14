@@ -8,3 +8,8 @@ Test*/
 
 # osx specific
 .DS_Store
+
+# pyinstaller
+build/
+dist/
+*.spec

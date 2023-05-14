@@ -183,8 +183,8 @@ log.info(f"****************************************************")
 log.info(f"Configured symbols to be replaced; {replace_chars};")
 
 # path for renaming
-# TODO: remove Test subdir
-path = os.path.join(os.curdir, 'Test')
+# path = os.path.join(os.curdir, 'Test')
+path = os.curdir
 log.info(f"Root path to rename set; Path; '{os.path.realpath(path)}';")
 
 # check if path exists

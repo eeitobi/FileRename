@@ -5,3 +5,6 @@ Test*/
 
 # logs
 *.log
+
+# osx specific
+.DS_Store

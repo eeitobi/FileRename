@@ -1,9 +1,10 @@
 import re
 import os
+import sys
 import logging
 from logging import handlers
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 
 def rename_safely(old_file_path: os.path, new_file_path: os.path) -> None:
     """
@@ -30,7 +31,10 @@ def rename_safely(old_file_path: os.path, new_file_path: os.path) -> None:
         log.warn(f"Renaming with conflict; Added '_2' to path; SourcePath; '{old_file_path}'; RenamedPath; '{new_file_path}';")
 
 
-def rename_file_in_dir(absolute_path: os.path, replace_chars: list) -> bool:
+def rename_file_in_dir(absolute_path: os.path, 
+                       replace_chars: list, 
+                       excluded_file_endings: list
+                       ) -> bool:
     """
     Rename files based on regex match. Ignores hidden files starting with '.'.
 
@@ -57,6 +61,10 @@ def rename_file_in_dir(absolute_path: os.path, replace_chars: list) -> bool:
     if mat is not None:
         rename_string = mat.group(1)
         rename_file_ending = mat.group(2)
+
+        # Filter out excluded file endings
+        if rename_file_ending in excluded_file_endings:
+            return False
 
         for char in replace_chars:
             rename_string = rename_string.replace(char, '_')
@@ -117,7 +125,10 @@ def rename_folder(absolute_path: os.path, replace_chars: list) -> bool:
     log.debug(f"Renaming not necessary for folder; Folder name; '{folder_name}';")
     return False
 
-def recurse_directory(path: os.path, replace_chars: list) -> tuple[int, int]:
+def recurse_directory(path: os.path, 
+                      replace_chars: list, 
+                      excluded_file_endings: list
+                      ) -> tuple[int, int]:
     """
     Recursively go through all contents of directory and replace using appropriate method for item type
     (file/folder).
@@ -141,7 +152,10 @@ def recurse_directory(path: os.path, replace_chars: list) -> tuple[int, int]:
         # decide if file or folder
         if os.path.isdir(curr_path):
             # if folder, recursively traverse
-            rfo, rfi = recurse_directory(path=curr_path, replace_chars=replace_chars)
+            rfo, rfi = recurse_directory(path=curr_path, 
+                                         replace_chars=replace_chars,
+                                         excluded_file_endings=excluded_file_endings
+                                         )
             renamed_folders += rfo
             renamed_files += rfi
             # then rename
@@ -150,13 +164,18 @@ def recurse_directory(path: os.path, replace_chars: list) -> tuple[int, int]:
                 renamed_folders += 1
         elif os.path.isfile(curr_path):
             # if file, rename
-            rename_file_flag = rename_file_in_dir(absolute_path=curr_path, replace_chars=replace_chars)
+            rename_file_flag = rename_file_in_dir(absolute_path=curr_path, 
+                                                  replace_chars=replace_chars,
+                                                  excluded_file_endings=excluded_file_endings
+                                                  )
             if rename_file_flag:
                 renamed_files += 1
     return renamed_folders, renamed_files
 
 pattern_file = '^(.*)\.(.*?)$'
 replace_chars = [' ', '.', '-']
+exclude_filetype = ['exe', 'pst']
+# allowed_filetype = ['xls', 'xlsx', 'doc', 'docx', 'ppt', 'pptx', 'pdf']
 
 # set and create log dir if it does not exist
 log_dir = os.path.join(os.curdir, 'FileRenameLog.log')
@@ -181,17 +200,31 @@ log.info(f"FileRename v{VERSION}")
 log.info(f"(c) 2023 Tobias Taenzer | tobicodes@pm.me")
 log.info(f"****************************************************")
 log.info(f"Configured symbols to be replaced; {replace_chars};")
+log.info(f"Configurd file endings to be ignored; {exclude_filetype};")
 
 # path for renaming
 # path = os.path.join(os.curdir, 'Test')
 path = os.curdir
 log.info(f"Root path to rename set; Path; '{os.path.realpath(path)}';")
 
+# user check
+print(f"Path selected for renaming: '{os.path.realpath(path)}'.")
+print(f"Characters that will be replaced: {replace_chars}.")
+print(f"File types that will be excluded: {exclude_filetype}.")
+text = input(f"Confirm by typing 'y' and pressing Enter. Cancel with any other button: ")
+if not text == "y":
+    log.warning(f"User aborted execution; Input; '{text}';")
+    sys.exit(1)
+log.info(f"User confirmed execution; TextInput; '{text}'; Path; '{os.path.realpath(path)}';")
+
 # check if path exists
 if not os.path.exists(path):
     os.makedirs(path)
-    log.warn(f"Root path did not exist; Path created; '{os.path.realpath(path)}';")
+    log.warning(f"Root path did not exist; Path created; '{os.path.realpath(path)}';")
 
 # execute recursively
-rename_counter_folders, rename_counter_files = recurse_directory(path, replace_chars=replace_chars)
+rename_counter_folders, rename_counter_files = recurse_directory(path=path, 
+                                                                 replace_chars=replace_chars,
+                                                                 excluded_file_endings=exclude_filetype
+                                                                 )
 log.info(f"Execution finished; Folders renamed; {rename_counter_folders}; Files renamed; {rename_counter_files};")
